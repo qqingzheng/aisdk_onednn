@@ -30,7 +30,7 @@ void test_Linear1D(){
     dims output_dims = {1, 4};
     Tensor<float> input = Tensor<float>(&env, input_dims);
     Tensor<float> output = Tensor<float>(&env, output_dims);
-    input = {0.0012, 0.03, 0.9, -0.9};
+    input = {0.0012, 0.03};
     std::vector<float> weights = {0.001, 0.002, 0.003, 0.005, 0.001, 0.002, 0.005, 0.008};
     std::vector<float> bias = {1, 1, 1, 1};
     nn::layer::Linear1D<float> linear = nn::layer::Linear1D<float>(&env, input_dims, output_dims, weights, bias);
@@ -68,11 +68,31 @@ void test_ReLU(){
     printf("\n");
 }
 
-
+void test_Tanh(){
+    Env env = Env(device_type::CPU, 0);
+    dims dim = {1, 4};
+    Tensor<float> input = Tensor<float>(&env, dim);
+    Tensor<float> output = Tensor<float>(&env, dim);
+    input = {0.0012, 0.03, 0.9, -0.9};
+    nn::af::Tanh<float> tanh = nn::af::Tanh<float>(&env, dim);
+    tanh.forward(input, output);
+    output.save(output.data.data());
+    printf("Tanh Test:\n");
+    printf("Input:");
+    for(auto i : input.data){
+        printf("%f ", i);
+    }
+    printf("\nOutput:");
+    for(auto i : output.data){
+        printf("%f ", i);
+    }
+    printf("\n");
+}
 
 int main(){
+    // test_Tanh();
     // test_ReLU();
     // test_Linear1D();
-    test_Concat();
+    // test_Concat();
     return 0;
 }
