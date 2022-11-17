@@ -2,7 +2,13 @@ project(AISDK)
 cmake_minimum_required(VERSION 3.16.3)
 
 # include path
-set(INCLUDE_PATH ${PROJECT_SOURCE_DIR}/include/)
+set(ONEDNN_VERBOSE 1)
+set(INCLUDE_PATH 
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/data
+    ${PROJECT_SOURCE_DIR}/include/env
+    ${PROJECT_SOURCE_DIR}/include/handy
+    ${PROJECT_SOURCE_DIR}/include/model)
 file(GLOB_RECURSE SOURCES     
 ${PROJECT_SOURCE_DIR}/src/*.cpp
 )
@@ -23,20 +29,10 @@ target_link_libraries(aisdk dnnl onednn)
 
 # Executable Test
 add_executable(main main.cpp)
-
 target_link_libraries(main aisdk dnnl onednn)
+add_executable(bm_model bm_model.cpp)
+target_link_libraries(bm_model aisdk dnnl onednn)
 
-target_include_directories(aisdk PUBLIC 
-    ${PROJECT_SOURCE_DIR}/include/data/
-    ${PROJECT_SOURCE_DIR}/include/env/
-    ${PROJECT_SOURCE_DIR}/include/handy/
-    ${PROJECT_SOURCE_DIR}/include/model/
-)
-target_include_directories(main PUBLIC 
-    ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/include/data/
-    ${PROJECT_SOURCE_DIR}/include/env/
-    ${PROJECT_SOURCE_DIR}/include/handy/
-    ${PROJECT_SOURCE_DIR}/include/model/
-)
-
+target_include_directories(aisdk PUBLIC ${INCLUDE_PATH})
+target_include_directories(main PUBLIC ${INCLUDE_PATH})
+target_include_directories(bm_model PUBLIC ${INCLUDE_PATH})

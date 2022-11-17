@@ -33,6 +33,7 @@ namespace aisdk{
             Env(device_type, unsigned long);
             dnnl::engine GetEngine(){ return engine; }
             dnnl::stream GetStream(){ return stream; }
+            void wait(){ stream.wait(); }
     };
 };
 

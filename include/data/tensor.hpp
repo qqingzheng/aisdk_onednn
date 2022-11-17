@@ -9,6 +9,7 @@
 namespace aisdk{
 
     typedef std::vector<long> dims;
+    typedef std::vector<dims> dims_list;
     typedef void* data_vector;
 
     template<typename T>
@@ -85,9 +86,9 @@ namespace aisdk{
                 SetCommonDesc(env, dims, memory_format_any);
                 this->data.resize(this->shape.size);
             }
-            void init(Env* env, const dims& dims, dnnl::memory::desc memory_desc){
+            void init(Env* env, dnnl::memory::desc memory_desc){
                 this->shape.memory_desc = memory_desc;
-                this->shape.size = this->shape.GetTotalLengthOfDims(dims);
+                this->shape.size = this->shape.GetTotalLengthOfDims(this->shape.memory_desc.dims());
                 CreateMem();
                 data.resize(this->shape.size);
             }
@@ -102,8 +103,12 @@ namespace aisdk{
             dnnl::memory& GetMem(){ return mem; }
             void load(void *);
             void save(void *);
+            void save();
     };
-
+    template<typename T>
+    void Tensor<T>::save(){
+        save(this->data.data());
+    }
     template<typename T>
     void Tensor<T>::save(void* handle){
         dnnl::engine eng = mem.get_engine();

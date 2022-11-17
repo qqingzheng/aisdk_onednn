@@ -1,10 +1,3 @@
-# AISDK
-
-Intel OneDNN encapsulation
-
-# Example
-
-```cpp
 #include "aisdk.h"
 #include <cstdio>
 #include <chrono>
@@ -32,15 +25,15 @@ int main(){
     Tensor<float> output = Tensor<float>(&env, {1, 18});
 
     // HV Feature Stream
-    auto pmi_feature_layer = nn::layer::Linear1D_ReLU<float>(&env, {1, 2}, {1, 8}, "PMI_to_features_weight.bin", "PMI_to_features_bias.bin");
-    auto hv_feature_layer = nn::layer::Linear1D_ReLU<float>(&env, {1, 8}, {1, 32}, "HV_features_weight.bin", "HV_features_bias.bin");
+    auto pmi_feature_layer = nn::layer::Linear1D_ReLU<float>(&env, {1, 2}, {1, 8}, "/home/lzj/aisdk_gui/model_bin/PMI_to_features_weight.bin", "/home/lzj/aisdk_gui/model_bin/PMI_to_features_bias.bin");
+    auto hv_feature_layer = nn::layer::Linear1D_ReLU<float>(&env, {1, 8}, {1, 32}, "/home/lzj/aisdk_gui/model_bin/HV_features_weight.bin", "/home/lzj/aisdk_gui/model_bin/HV_features_bias.bin");
     // Layer Feature Stream
-    auto RI_feature_layer = nn::layer::Linear1D<float>(&env, {1, 4}, {1, 16}, "RI_to_features_weight.bin", "RI_to_features_bias.bin");
-    auto CQI_feature_layer = nn::layer::Linear1D<float>(&env, {1, 17}, {1, 16}, "CQI_to_features_weight.bin", "CQI_to_features_bias.bin");
-    auto TP_feature_layer = nn::layer::Linear1D<float>(&env, {1, 17}, {1, 16}, "TP_to_features_weight.bin", "TP_to_features_bias.bin");
-    auto hidden_feature_layer1 = nn::layer::Linear1D_ReLU<float>(&env, {1, 48}, {1, 128}, "layer_hiden_layer1_weight.bin", "layer_hiden_layer1_bias.bin");
-    auto hidden_feature_layer2 = nn::layer::Linear1D_ReLU<float>(&env, {1, 128}, {1, 256}, "layer_hiden_layer2_weight.bin", "layer_hiden_layer2_bias.bin");
-    auto joint_layer = nn::layer::Linear1D<float>(&env, {1, 288}, {1, 18}, "joint_layer_weight.bin", "joint_layer_bias.bin");
+    auto RI_feature_layer = nn::layer::Linear1D<float>(&env, {1, 4}, {1, 16}, "/home/lzj/aisdk_gui/model_bin/RI_to_features_weight.bin", "/home/lzj/aisdk_gui/model_bin/RI_to_features_bias.bin");
+    auto CQI_feature_layer = nn::layer::Linear1D<float>(&env, {1, 17}, {1, 16}, "/home/lzj/aisdk_gui/model_bin/CQI_to_features_weight.bin", "/home/lzj/aisdk_gui/model_bin/CQI_to_features_bias.bin");
+    auto TP_feature_layer = nn::layer::Linear1D<float>(&env, {1, 17}, {1, 16}, "/home/lzj/aisdk_gui/model_bin/TP_to_features_weight.bin", "/home/lzj/aisdk_gui/model_bin/TP_to_features_bias.bin");
+    auto hidden_feature_layer1 = nn::layer::Linear1D_ReLU<float>(&env, {1, 48}, {1, 128}, "/home/lzj/aisdk_gui/model_bin/layer_hiden_layer1_weight.bin", "/home/lzj/aisdk_gui/model_bin/layer_hiden_layer1_bias.bin");
+    auto hidden_feature_layer2 = nn::layer::Linear1D_ReLU<float>(&env, {1, 128}, {1, 256}, "/home/lzj/aisdk_gui/model_bin/layer_hiden_layer2_weight.bin", "/home/lzj/aisdk_gui/model_bin/layer_hiden_layer2_bias.bin");
+    auto joint_layer = nn::layer::Linear1D<float>(&env, {1, 288}, {1, 18}, "/home/lzj/aisdk_gui/model_bin/joint_layer_weight.bin", "/home/lzj/aisdk_gui/model_bin/joint_layer_bias.bin");
     
     auto start = std::chrono::high_resolution_clock::now();
     int test_times = 1;
@@ -60,6 +53,9 @@ int main(){
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     printf("Execution time: %ld microseconds", duration.count()/test_times);
+    // output.save();
+    // for(auto value : output.data){
+    //     printf("%f ", value);
+    // }
     return 0;
 }
-```
