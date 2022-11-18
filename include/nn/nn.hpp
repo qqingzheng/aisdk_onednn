@@ -101,6 +101,8 @@ namespace aisdk{ namespace nn{
                 Env* env;
                 Shape<T> md;
                 bool is_weight_reorder = false;
+                bool first_run = true;
+                std::unordered_map<int, memory> inner_product_args;
                 Tensor<T> reordered_weight_data;
                 Tensor<T> weights_data;
                 Tensor<T> bias_data;
@@ -168,15 +170,17 @@ namespace aisdk{ namespace nn{
                     this->bias_data = bias;
                 }
                 void forward(Tensor<T>& input, Tensor<T>& output, bool save_process = false){
-                    std::unordered_map<int, memory> inner_product_args;
-                    inner_product_args.insert({DNNL_ARG_SRC, input.mem});
-                    if(is_weight_reorder){
-                        inner_product_args.insert({DNNL_ARG_WEIGHTS, reordered_weight_data.mem});
-                    }else{
-                        inner_product_args.insert({DNNL_ARG_WEIGHTS, weights_data.mem});
+                    if(first_run){
+                        inner_product_args.insert({DNNL_ARG_SRC, input.mem});
+                        if(is_weight_reorder){
+                            inner_product_args.insert({DNNL_ARG_WEIGHTS, reordered_weight_data.mem});
+                        }else{
+                            inner_product_args.insert({DNNL_ARG_WEIGHTS, weights_data.mem});
+                        }
+                        inner_product_args.insert({DNNL_ARG_BIAS, bias_data.mem});
+                        inner_product_args.insert({DNNL_ARG_DST, output.mem});
+                        first_run = false;
                     }
-                    inner_product_args.insert({DNNL_ARG_BIAS, bias_data.mem});
-                    inner_product_args.insert({DNNL_ARG_DST, output.mem});
                     primitive.execute(env->GetStream(), inner_product_args);
                     if(save_process){
                         env->GetStream().wait();
@@ -191,6 +195,8 @@ namespace aisdk{ namespace nn{
                 Env* env;
                 Shape<T> md;
                 bool is_weight_reorder = false;
+                bool first_run = true;
+                std::unordered_map<int, memory> inner_product_args;
                 Tensor<T> reordered_weight_data;
                 Tensor<T> weights_data;
                 Tensor<T> bias_data;
@@ -263,15 +269,17 @@ namespace aisdk{ namespace nn{
                     this->bias_data = bias;
                 }
                 void forward(Tensor<T>& input, Tensor<T>& output, bool save_process = false){
-                    std::unordered_map<int, memory> inner_product_args;
-                    inner_product_args.insert({DNNL_ARG_SRC, input.mem});
-                    if(is_weight_reorder){
-                        inner_product_args.insert({DNNL_ARG_WEIGHTS, reordered_weight_data.mem});
-                    }else{
-                        inner_product_args.insert({DNNL_ARG_WEIGHTS, weights_data.mem});
+                    if(first_run){
+                        inner_product_args.insert({DNNL_ARG_SRC, input.mem});
+                        if(is_weight_reorder){
+                            inner_product_args.insert({DNNL_ARG_WEIGHTS, reordered_weight_data.mem});
+                        }else{
+                            inner_product_args.insert({DNNL_ARG_WEIGHTS, weights_data.mem});
+                        }
+                        inner_product_args.insert({DNNL_ARG_BIAS, bias_data.mem});
+                        inner_product_args.insert({DNNL_ARG_DST, output.mem});
+                        first_run = false;
                     }
-                    inner_product_args.insert({DNNL_ARG_BIAS, bias_data.mem});
-                    inner_product_args.insert({DNNL_ARG_DST, output.mem});
                     primitive.execute(env->GetStream(), inner_product_args);
                     if(save_process){
                         env->GetStream().wait();
