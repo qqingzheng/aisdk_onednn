@@ -44,34 +44,6 @@ namespace aisdk{ namespace nn{
                     }
                 }
         };
-        // class Concat{
-        //     private:
-        //         Env* env;
-        //         concat primitive;
-        //     public:
-        //         Concat(Env* env_ptr, const dims_list input_dims, int axis){
-        //             env = env_ptr;
-        //             std::vector<memory::desc> src_mds;
-        //             for(dims dim : input_dims){
-        //                 Shape<T> shape = Shape<T>(env_ptr, dim);
-        //                 src_mds.push_back(shape.memory_desc);
-        //             }
-        //             auto concat_pd = concat::primitive_desc(axis, src_mds, env_ptr->GetEngine());
-        //             primitive = concat(concat_pd);
-        //         }
-        //         void forward(const std::vector<Tensor<T>*> tensors, Tensor<T>& output, bool save_process = false){
-        //             std::unordered_map<int, memory> concat_args;
-        //             for(int i = 0; i < tensors.size(); ++ i){
-        //                 concat_args.insert({DNNL_ARG_MULTIPLE_SRC + i, tensors[i]->mem});
-        //             }
-        //             concat_args.insert({DNNL_ARG_DST, output.mem});
-        //             primitive.execute(env->GetStream(), concat_args);
-        //             if(save_process){
-        //                 output.save();
-        //                 env->GetStream().wait();
-        //             }
-        //         }
-        // };
     }
 
     namespace af{
