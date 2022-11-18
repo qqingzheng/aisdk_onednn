@@ -1,4 +1,6 @@
 #include "aisdk.h"
+#include "oneapi/dnnl/dnnl.hpp"
+#include "example_utils.hpp"
 #include <cstdio>
 #include <chrono>
 using namespace aisdk;
@@ -7,17 +9,16 @@ using namespace aisdk;
 
 void test_Concat(){
     Env env = Env(device_type::CPU, 0);
-    dims_list input_dims_list = {{1,16},{1,16}};
-    dims output_dims = {1, 32};
-    Tensor<float> tensor1 = Tensor<float>(&env, input_dims_list[0], {0.03, 0.04, 0.05, 0.06, 0.03, 0.04, 0.05, 0.06, 0.03, 0.04, 0.05, 0.06, 0.03, 0.04, 0.05, 0.06});
-    Tensor<float> tensor2 = Tensor<float>(&env, input_dims_list[1], {0.03, 0.04, 0.05, 0.06, 0.03, 0.04, 0.05, 0.06, 0.03, 0.04, 0.05, 0.06, 0.03, 0.04, 0.05, 0.06});
-    Tensor<float> output = Tensor<float>(&env, output_dims);
+    Tensor<float> input = Tensor<float>(&env, {1, 8});
+    Tensor<float> input1 = Tensor<float>(&env, input, {1,4}, 0, {0.01, 0.02, 0.04, 0.1});
+    Tensor<float> input2 = Tensor<float>(&env, input, {1,4}, 4, {0.3, 0.4, 0.01, 0.05});
+    auto concat =  nn::op::Concat<float>(&env, {&input1, &input2}, 1);
+    Tensor<float> output = Tensor<float>(&env, {1, 8});
     auto start = std::chrono::high_resolution_clock::now();
-    int test_times = 100;
-    for(int i = 0; i < test_times; ++i){
-            nn::op::Concat<float>(&env, tensor1, tensor2, 1, output, true);
-            env.wait();
-    }
+    int test_times = 1000;
+    // for(int i = 0; i < test_times; ++i){
+    //     concat_pm.execute(env.GetStream(), concat_args);
+    // }
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     printf("Execution time: %ld microseconds", duration.count()/test_times);
@@ -27,14 +28,18 @@ void test_Concat(){
 void test_Linear1D(){
     Env env = Env(device_type::CPU, 0);
     dims input_dims = {1, 2};
-    dims output_dims = {1, 4};
+    dims output_dims = {1, 8};
     Tensor<float> input = Tensor<float>(&env, input_dims);
     Tensor<float> output = Tensor<float>(&env, output_dims);
+    Tensor<float> output1 = Tensor<float>(&env, {1,4});
+    Tensor<float> output2 = Tensor<float>(&env, {1,4});
+    output1.mem.set_data_handle(output.mem.get_data_handle());
+    output2.mem.set_data_handle((float*)output.mem.get_data_handle() +  4);
     input = {0.0012, 0.03, 0.9, -0.9};
-    std::vector<float> weights = {0.001, 0.002, 0.003, 0.005, 0.001, 0.002, 0.005, 0.008};
-    std::vector<float> bias = {1, 1, 1, 1};
-    nn::layer::Linear1D<float> linear = nn::layer::Linear1D<float>(&env, input_dims, output_dims, weights, bias);
-    linear.forward(input, output, true);
+    nn::layer::Linear1D<float> linear1 = nn::layer::Linear1D<float>(&env, input_dims, {1, 4}, {0.001, 0.002, 0.003, 0.005, 0.001, 0.002, 0.005, 0.008}, {1, 1, 1, 1});
+    nn::layer::Linear1D<float> linear2 = nn::layer::Linear1D<float>(&env, input_dims, {1, 4}, {0.021, 0.002, 0.003, 0.005, 0.001, 0.102, 0.0013, 0.038}, {2, 2, 2, 2});
+    linear1.forward(input, output1, true);
+    linear2.forward(input, output2, true);
     printf("Linear1D Test:\n");
     printf("Input:");
     for(auto i : input.data){
@@ -73,6 +78,6 @@ void test_ReLU(){
 int main(){
     // test_ReLU();
     // test_Linear1D();
-    test_Concat();
+    test_Linear1D();
     return 0;
 }

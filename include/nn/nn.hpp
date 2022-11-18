@@ -16,43 +16,62 @@ namespace aisdk{ namespace nn{
 
     namespace op{
         template<typename T>
-        void Concat(Env* env_ptr ,const std::vector<Tensor<T>*>& tensors, int axis, Tensor<T>& output, bool save_process = false){
-            std::vector<memory::desc> src_mds;
-            for(auto tensor_ptr : tensors){
-                // printf("%d", ((Tensor<T>*)tensor_ptr)->mem.)
-                src_mds.push_back(tensor_ptr->shape.memory_desc);
-            }
-            auto concat_pd = concat::primitive_desc(axis, src_mds, env_ptr->GetEngine());
-            output.init(env_ptr, concat_pd.dst_desc());
-            auto concat_prim = concat(concat_pd);
-            std::unordered_map<int, memory> concat_args;
-            for(int i = 0; i < tensors.size(); ++ i){
-                concat_args.insert({DNNL_ARG_MULTIPLE_SRC + i, tensors[i]->mem});
-            }
-            concat_args.insert({DNNL_ARG_DST, output.mem});
-            concat_prim.execute(env_ptr->GetStream(), concat_args);
-            if(save_process){
-                output.save();
-                env_ptr->GetStream().wait();
-            }
-        }
-        template<typename T>
-        void Concat(Env* env_ptr ,const Tensor<T>& tensor1, const Tensor<T>& tensor2, int axis, Tensor<T>& output, bool save_process = false){
-            std::vector<memory::desc> src_mds;
-            src_mds.push_back(tensor1.shape.memory_desc);
-            src_mds.push_back(tensor2.shape.memory_desc);
-            auto concat_pd = concat::primitive_desc(axis, src_mds, env_ptr->GetEngine());
-            auto concat_prim = concat(concat_pd);
-            std::unordered_map<int, memory> concat_args;
-            concat_args.insert({DNNL_ARG_MULTIPLE_SRC, tensor1.mem});
-            concat_args.insert({DNNL_ARG_MULTIPLE_SRC + 1, tensor2.mem});
-            concat_args.insert({DNNL_ARG_DST, output.mem});
-            concat_prim.execute(env_ptr->GetStream(), concat_args);
-            if(save_process){
-                output.save();
-                env_ptr->GetStream().wait();
-            }
-        }
+        class Concat{
+            private:
+                Env* env;
+                concat primitive;
+                std::unordered_map<int, memory> concat_args;
+            public:
+                Concat(Env* env_ptr, const std::vector<Tensor<T>*> tensors, int axis){
+                    env = env_ptr;
+                    std::vector<memory::desc> src_mds;
+                    for(Tensor<T>* tensor : tensors){
+                        src_mds.push_back(tensor->shape.memory_desc);
+                    }
+                    auto concat_pd = concat::primitive_desc(axis, src_mds, env_ptr->GetEngine());
+                    primitive = concat(concat_pd);
+                    for(int i = 0; i < tensors.size(); ++ i){
+                        concat_args.insert({DNNL_ARG_MULTIPLE_SRC + i, tensors[i]->mem});
+                    }
+                    
+                }
+                void forward(Tensor<T>& output, bool save_process = false){
+                    concat_args.insert({DNNL_ARG_DST, output.mem});
+                    primitive.execute(env->GetStream(), concat_args);
+                    if(save_process){
+                        env->GetStream().wait();
+                        output.save();
+                    }
+                }
+        };
+        // class Concat{
+        //     private:
+        //         Env* env;
+        //         concat primitive;
+        //     public:
+        //         Concat(Env* env_ptr, const dims_list input_dims, int axis){
+        //             env = env_ptr;
+        //             std::vector<memory::desc> src_mds;
+        //             for(dims dim : input_dims){
+        //                 Shape<T> shape = Shape<T>(env_ptr, dim);
+        //                 src_mds.push_back(shape.memory_desc);
+        //             }
+        //             auto concat_pd = concat::primitive_desc(axis, src_mds, env_ptr->GetEngine());
+        //             primitive = concat(concat_pd);
+        //         }
+        //         void forward(const std::vector<Tensor<T>*> tensors, Tensor<T>& output, bool save_process = false){
+        //             std::unordered_map<int, memory> concat_args;
+        //             for(int i = 0; i < tensors.size(); ++ i){
+        //                 concat_args.insert({DNNL_ARG_MULTIPLE_SRC + i, tensors[i]->mem});
+        //             }
+        //             concat_args.insert({DNNL_ARG_DST, output.mem});
+        //             primitive.execute(env->GetStream(), concat_args);
+        //             if(save_process){
+        //                 output.save();
+        //                 env->GetStream().wait();
+        //             }
+        //         }
+        // };
     }
 
     namespace af{
@@ -95,8 +114,8 @@ namespace aisdk{ namespace nn{
                         {DNNL_ARG_DST, output.mem}
                     });
                     if(save_process){
-                        output.save();
                         env->GetStream().wait();
+                        output.save();
                     }
                 }
 
@@ -156,11 +175,10 @@ namespace aisdk{ namespace nn{
                 void init(const std::vector<T>& weights, const std::vector<T>& bias){
                     SetWeight(weights);
                     SetBias(bias);
-                    Shape<T> shape;
-                    memory::desc src_md = memory::desc(input_dims, shape.GetDtype(), memory::format_tag::ab);
-                    memory::desc dst_md  = memory::desc(output_dims, shape.GetDtype(), memory::format_tag::ab);
+                    Shape<T> src_shape = Shape<T>(env, input_dims);
+                    Shape<T> dst_shape = Shape<T>(env, output_dims);
                     inner_product_forward::primitive_desc linear_pd = inner_product_forward::primitive_desc({
-                            prop_kind::forward_training, src_md, reordered_weight_data.shape.memory_desc, bias_data.shape.memory_desc, dst_md}, env->GetEngine());
+                            prop_kind::forward_training, src_shape.memory_desc, reordered_weight_data.shape.memory_desc, bias_data.shape.memory_desc, dst_shape.memory_desc}, env->GetEngine());
 
                     bool need_reorder_weights = linear_pd.weights_desc() != weights_data.shape.memory_desc;
                     if (need_reorder_weights) {
@@ -189,8 +207,8 @@ namespace aisdk{ namespace nn{
                     inner_product_args.insert({DNNL_ARG_DST, output.mem});
                     primitive.execute(env->GetStream(), inner_product_args);
                     if(save_process){
-                        output.save();
                         env->GetStream().wait();
+                        output.save();
                     }
                 }
 
@@ -284,8 +302,8 @@ namespace aisdk{ namespace nn{
                     inner_product_args.insert({DNNL_ARG_DST, output.mem});
                     primitive.execute(env->GetStream(), inner_product_args);
                     if(save_process){
-                        output.save();
                         env->GetStream().wait();
+                        output.save();
                     }
                 }
 
