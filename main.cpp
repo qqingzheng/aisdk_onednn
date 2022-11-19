@@ -26,6 +26,39 @@ void test_Concat(){
     
 }
 
+void test_Conv()
+{
+    Env env = Env(device_type::CPU, 0);
+    dims input_dims = {1, 1, 3, 3};
+    dims output_dims = {1, 1, 3, 3};
+    dims kernel_dims = {1, 1, 1, 1};
+    dims stride = {1, 1};
+    dims padding = {0, 0};
+    Tensor<float> input = Tensor<float>(&env, input_dims);
+    Tensor<float> output = Tensor<float>(&env, output_dims);
+    input = {1., 1., 1. ,1., 1., 1., 1., 1., 1.};
+    std::vector<float> weights = {1.};
+    std::vector<float> bias = {1.};
+    nn::layer::Conv<float> conv = nn::layer::Conv<float>(&env, input_dims, output_dims, kernel_dims, stride, padding, padding, weights, bias);
+    int test_times = 1;
+    auto start = std::chrono::high_resolution_clock::now();
+    for(int i = 0; i < test_times; ++i){
+        conv.forward(input, output, true);
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    printf("Execution time: %ld microseconds", duration.count()/test_times);
+    // printf("Conv Test:\n");
+    // printf("Input:");
+    // for(auto i : input.data){
+    //     printf("%f ", i);
+    // }
+    // printf("\nOutput:");
+    // for(auto i : output.data){
+    //     printf("%f ", i);
+    // }
+    printf("\n");
+}
 void test_Linear1D(){
     Env env = Env(device_type::CPU, 0);
     dims input_dims = {1, 2};
@@ -83,6 +116,6 @@ void test_ReLU(){
 int main(){
     // test_ReLU();
     // test_Linear1D();
-    test_Linear1D();
+    test_Conv();
     return 0;
 }
