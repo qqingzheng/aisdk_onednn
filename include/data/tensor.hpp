@@ -66,6 +66,22 @@ namespace aisdk{
             std::vector<T> data;
             Shape<T> shape;
             Tensor(){  }
+            Tensor(Env* env, const Tensor<T>& src, const dims& dims, int offset){ 
+                SetCommonDesc(env, dims, false);
+                if(shape.size > src.shape.size - offset) throw std::runtime_error("too long");
+                CreateMem();
+                this->data.resize(this->shape.size);
+                mem.set_data_handle((T*)src.mem.get_data_handle() + offset);
+            }
+            Tensor(Env* env, const Tensor<T>& src, const dims& dims, int offset, const std::vector<T>& data){ 
+                SetCommonDesc(env, dims, false);
+                if(shape.size > src.shape.size - offset) throw std::runtime_error("too long");
+                CreateMem();
+                mem.set_data_handle((T*)src.mem.get_data_handle() + offset);
+                this->data.resize(this->shape.size);
+                this->data = data; 
+                load(this->data.data());
+            }
             Tensor(Env* env, const dims& dims, const std::vector<T>& data, bool memory_format_any=false){ init(env, dims, data, memory_format_any); }
             Tensor(Env* env, const dims& dims, bool memory_format_any=false){ init(env, dims, memory_format_any); }
             Tensor(Env* env, dnnl::memory::desc memory_desc){ init(env, memory_desc); }
@@ -85,6 +101,9 @@ namespace aisdk{
             void init_nomem(Env* env, const dims& dims, bool memory_format_any=false){
                 SetCommonDesc(env, dims, memory_format_any);
                 this->data.resize(this->shape.size);
+            }
+            void offset(int offset){
+                mem.set_data_handle((void*)((T*)mem.get_data_handle() - offset));
             }
             void init(Env* env, dnnl::memory::desc memory_desc){
                 this->shape.memory_desc = memory_desc;
