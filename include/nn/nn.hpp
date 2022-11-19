@@ -22,13 +22,13 @@ namespace aisdk{ namespace nn{
                 concat primitive;
                 std::unordered_map<int, memory> concat_args;
             public:
-                Concat(Env* env_ptr, const std::vector<Tensor<T>*> tensors, int axis){
+                Concat(Env* env_ptr, const std::vector<Tensor<T>*> tensors, const Tensor<T>& dst, int axis){
                     env = env_ptr;
                     std::vector<memory::desc> src_mds;
                     for(Tensor<T>* tensor : tensors){
                         src_mds.push_back(tensor->shape.memory_desc);
                     }
-                    auto concat_pd = concat::primitive_desc(axis, src_mds, env_ptr->GetEngine());
+                    auto concat_pd = concat::primitive_desc(env_ptr->GetEngine(), dst.shape.memory_desc, axis, src_mds);
                     primitive = concat(concat_pd);
                     for(int i = 0; i < tensors.size(); ++ i){
                         concat_args.insert({DNNL_ARG_MULTIPLE_SRC + i, tensors[i]->mem});
@@ -58,29 +58,30 @@ namespace aisdk{ namespace nn{
                 ReLU(Env* env_ptr, const dims& dim, float alpha, float beta){
                     this->env = env_ptr;
                     md = Shape<T>(env, dim);
-                    pd = eltwise_forward::primitive_desc({
+                    pd = eltwise_forward::primitive_desc(env->GetEngine(),
                             prop_kind::forward_inference, algorithm::eltwise_relu,
+                            md.memory_desc, 
                             md.memory_desc, 
                             alpha, 
                             beta 
-                        }, env->GetEngine()
+                        
                     );
                     primitive = eltwise_forward(pd);
                 }
                 ReLU(Env* env_ptr, const dims& dim){
                     this->env = env_ptr;
                     md = Shape<T>(env, dim);
-                    pd = eltwise_forward::primitive_desc({
+                    pd = eltwise_forward::primitive_desc(env->GetEngine(),
                             prop_kind::forward_inference, algorithm::eltwise_relu,
                             md.memory_desc, 
+                            md.memory_desc,
                             0.f, 
-                            0.f 
-                        }, env->GetEngine()
+                            0.f
                     );
                     primitive = eltwise_forward(pd);
                 }
                 void forward(Tensor<T>& input, Tensor<T>& output, bool save_process = false){
-                    primitive.execute(env->GetEngine(),
+                    primitive.execute(env->GetStream(),
                     {
                         {DNNL_ARG_SRC, input.mem},
                         {DNNL_ARG_DST, output.mem}
@@ -151,14 +152,14 @@ namespace aisdk{ namespace nn{
                     SetBias(bias);
                     Shape<T> src_shape = Shape<T>(env, input_dims);
                     Shape<T> dst_shape = Shape<T>(env, output_dims);
-                    inner_product_forward::primitive_desc linear_pd = inner_product_forward::primitive_desc({
-                            prop_kind::forward_training, src_shape.memory_desc, reordered_weight_data.shape.memory_desc, bias_data.shape.memory_desc, dst_shape.memory_desc}, env->GetEngine());
+                    inner_product_forward::primitive_desc linear_pd = inner_product_forward::primitive_desc(
+                            env->GetEngine(), prop_kind::forward_training, src_shape.memory_desc, reordered_weight_data.shape.memory_desc, bias_data.shape.memory_desc, dst_shape.memory_desc);
 
                     bool need_reorder_weights = linear_pd.weights_desc() != weights_data.shape.memory_desc;
                     if (need_reorder_weights) {
                         is_weight_reorder = true;
                         reordered_weight_data.mem = memory(linear_pd.weights_desc(), env->GetEngine());
-                        reorder(weights_data.mem, reordered_weight_data.mem).execute(env->GetEngine(), weights_data.mem, reordered_weight_data.mem);
+                        reorder(weights_data.mem, reordered_weight_data.mem).execute(env->GetStream(), weights_data.mem, reordered_weight_data.mem);
                     }
                     
                     primitive = inner_product_forward(linear_pd);
@@ -246,18 +247,17 @@ namespace aisdk{ namespace nn{
                     Shape<T> shape;
                     post_ops inner_product_ops;
                     inner_product_ops.append_eltwise(
-                            1.0f, algorithm::eltwise_relu, 0.f, 0.f);
+                            algorithm::eltwise_relu, 0.f, 0.f);
                     primitive_attr inner_product_attr;
                     inner_product_attr.set_post_ops(inner_product_ops);
                     memory::desc src_md = memory::desc(input_dims, shape.GetDtype(), memory::format_tag::ab);
                     memory::desc dst_md  = memory::desc(output_dims, shape.GetDtype(), memory::format_tag::ab);
-                    inner_product_forward::primitive_desc linear_pd = inner_product_forward::primitive_desc({
-                            prop_kind::forward_training, src_md, reordered_weight_data.shape.memory_desc, bias_data.shape.memory_desc, dst_md}, inner_product_attr, env->GetEngine());
+                    inner_product_forward::primitive_desc linear_pd = inner_product_forward::primitive_desc(env->GetEngine(),prop_kind::forward_training, src_md, reordered_weight_data.shape.memory_desc, bias_data.shape.memory_desc, dst_md, inner_product_attr);
                     bool need_reorder_weights = linear_pd.weights_desc() != weights_data.shape.memory_desc;
                     if (need_reorder_weights) {
                         is_weight_reorder = true;
                         reordered_weight_data.mem = memory(linear_pd.weights_desc(), env->GetEngine());
-                        reorder(weights_data.mem, reordered_weight_data.mem).execute(env->GetEngine(), weights_data.mem, reordered_weight_data.mem);
+                        reorder(weights_data.mem, reordered_weight_data.mem).execute(env->GetStream(), weights_data.mem, reordered_weight_data.mem);
                     }
                     
                     primitive = inner_product_forward(linear_pd);

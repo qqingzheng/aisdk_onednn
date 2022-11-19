@@ -12,8 +12,9 @@ void test_Concat(){
     Tensor<float> input = Tensor<float>(&env, {1, 8});
     Tensor<float> input1 = Tensor<float>(&env, input, {1,4}, 0, {0.01, 0.02, 0.04, 0.1});
     Tensor<float> input2 = Tensor<float>(&env, input, {1,4}, 4, {0.3, 0.4, 0.01, 0.05});
-    auto concat =  nn::op::Concat<float>(&env, {&input1, &input2}, 1);
     Tensor<float> output = Tensor<float>(&env, {1, 8});
+    auto concat =  nn::op::Concat<float>(&env, {&input1, &input2}, output, 1);
+    
     auto start = std::chrono::high_resolution_clock::now();
     int test_times = 1000;
     // for(int i = 0; i < test_times; ++i){
@@ -45,8 +46,12 @@ void test_Linear1D(){
     for(auto i : input.data){
         printf("%f ", i);
     }
-    printf("\nOutput:");
-    for(auto i : output.data){
+    printf("\nOutput1:");
+    for(auto i : output1.data){
+        printf("%f ", i);
+    }
+    printf("\nOutput2:");
+    for(auto i : output2.data){
         printf("%f ", i);
     }
     printf("\n");
