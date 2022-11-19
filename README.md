@@ -10,4 +10,4 @@ Intel OneDNN encapsulation
 
 # Example
 
-[main.cpp](blob/main/main.cpp)
+[main.cpp](main.cpp)
