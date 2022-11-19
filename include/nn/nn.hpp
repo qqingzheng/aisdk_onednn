@@ -105,29 +105,29 @@ namespace aisdk{ namespace nn{
                 Tanh(Env* env_ptr, const dims& dim, float alpha, float beta){
                     this->env = env_ptr;
                     md = Shape<T>(env, dim);
-                    pd = eltwise_forward::primitive_desc({
+                    pd = eltwise_forward::primitive_desc(env->GetEngine(),
                             prop_kind::forward_inference, algorithm::eltwise_tanh,
+                            md.memory_desc, 
                             md.memory_desc, 
                             alpha, 
                             beta 
-                        }, env->GetEngine()
                     );
                     primitive = eltwise_forward(pd);
                 }
                 Tanh(Env* env_ptr, const dims& dim){
                     this->env = env_ptr;
                     md = Shape<T>(env, dim);
-                    pd = eltwise_forward::primitive_desc({
+                    pd = eltwise_forward::primitive_desc(env->GetEngine(),
                             prop_kind::forward_inference, algorithm::eltwise_tanh,
+                            md.memory_desc, 
                             md.memory_desc, 
                             0.f, 
                             0.f 
-                        }, env->GetEngine()
                     );
                     primitive = eltwise_forward(pd);
                 }
                 void forward(Tensor<T>& input, Tensor<T>& output, bool save_process = false){
-                    primitive.execute(env->GetEngine(),
+                    primitive.execute(env->GetStream(),
                     {
                         {DNNL_ARG_SRC, input.mem},
                         {DNNL_ARG_DST, output.mem}
